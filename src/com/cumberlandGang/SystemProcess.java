@@ -10,8 +10,6 @@ import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
 
-import static org.jutils.jprocesses.JProcesses.getProcessList;
-
 /**
  * SystemProcess represents a process that is either running or has
  * run on the computer.
