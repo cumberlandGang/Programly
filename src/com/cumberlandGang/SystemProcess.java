@@ -6,6 +6,8 @@ import org.jutils.jprocesses.model.ProcessInfo;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
@@ -30,20 +32,8 @@ public class SystemProcess {
      */
     private String processPath;
 
-    /**
-     * The time when the process started. This is tracked by the
-     * Operating System. Unfortunately, the DATE when a program began running is not
-     * tracked, so the date that Programmly began running will be assigned to the
-     * processStartTime.
-     */
-    private Date processStartTime;
 
-    /**
-     * The date / time when the process ended. This is tracked
-     * via isProcessDead(), and further handled with the
-     * SystemProcessTracker
-     */
-    private Date processEndTime;
+    private Instant processStartTime, processEndTime;
 
     /**
      * The underlying Process information.
@@ -53,20 +43,19 @@ public class SystemProcess {
      */
     private ProcessInfo underlyingProcess;
 
+
     /**
      * The default SystemProcess constructor. This will create a
      * reference to a process that is not confirmed to be running on the
      * computer. As such, no underlyingProcess is generated.
      * @param procName The process name
      * @param procPath The path of the running executable
-     * @param start The time the process started
      */
-    public SystemProcess(String procName, String procPath, Date start) {
+    public SystemProcess(String procName, String procPath) {
         processName = procName;
         processPath = procPath;
 
-        processStartTime = start;
-        processEndTime = null;
+        processStartTime = Instant.now();
     }
 
     /**
@@ -82,38 +71,10 @@ public class SystemProcess {
         String procName = info.getName();
         String procPath = info.getCommand();
 
-        LocalDateTime currentDate = LocalDateTime.now();
-
-        // Prefixes the date of this program with today's date in MM/DD/YYYY
-        String datePrefix = ""
-                + currentDate.getMonthValue()
-                + "/"
-                + currentDate.getDayOfMonth()
-                + "/"
-                + currentDate.getYear()
-                + " "; // Leaves space for the time of a running process
-
-        // Format is expected to be MM/dd/yyyy kk:mm:ss
-        // Example: 02/28/2016 14:26:10
-        String processStartString = datePrefix + info.getStartTime();
-
-        // M = month, d=day, y=year, k=24-hour-time hour, m=minute, s=second
-        DateFormat df = new SimpleDateFormat("MM/dd/yyyy kk:mm:ss");
-
-        Date startDate = null;
-
-        // Try to parse the combination of today's date and the processes time into a Date object
-        try {
-            startDate = df.parse(processStartString);
-        } catch (ParseException e) {
-            System.err.println("[Error! SystemProcess 59:0] SimpleDateFormat incorrectly matches process StartDate.");
-            e.printStackTrace();
-        }
-
         this.processName = procName;
         this.processPath = procPath;
 
-        this.processStartTime = startDate;
+        this.processStartTime = Instant.now();
         this.processEndTime = null; // Don't actually know the EndTime yet
 
         this.underlyingProcess = info;
@@ -148,6 +109,14 @@ public class SystemProcess {
         return null;
     }
 
+    public String getProcessName() {
+        return processName;
+    }
+
+    public Instant getProcessStartTime() {
+        return processStartTime;
+    }
+
     /**
      * Test to see whether or not the running process is dead. This will automatically
      * adjust the EndTime if it's deemed to have been exited.
@@ -162,10 +131,19 @@ public class SystemProcess {
                 hasEnded = false;
         }
 
-        if(hasEnded)
-            processEndTime = Util.nowToSystemTime(); // Set the EndTime if it's dead
+        if(hasEnded && processEndTime == null) // If processEndTime isn't null it's been checked before
+            processEndTime = Instant.now();
 
         return hasEnded;
+    }
+
+    /**
+     * Gets the period of time that this process ran for.
+     * @return The Duration of this process's life
+     */
+    public Duration getProcessLifetime()
+    {
+        return Duration.between(processStartTime, processEndTime);
     }
 
     @Override
